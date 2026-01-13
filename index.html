@@ -4,38 +4,182 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YT Channel Extractor</title>
+    
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#FF0000">
+    <meta name="theme-color" content="#002B49">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --primary: #FF0000; --bg: #f4f4f4; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        textarea { width: 100%; height: 120px; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; }
-        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
-        button:disabled { background: #ccc; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background: #eee; }
-        .status { margin-top: 10px; font-weight: bold; }
+        :root { 
+            --brand-primary: #002B49; 
+            --brand-secondary: #0071bc; 
+            --page-bg: #F8F9FA; 
+            --text-main: #333333;
+            --border-muted: #E1E4E8;
+        }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--page-bg); 
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .main-card { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+            border-top: 5px solid var(--brand-primary);
+        }
+
+        h2 { 
+            color: var(--brand-primary); 
+            margin-top: 0; 
+            font-weight: 600;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        p { color: #666; font-size: 14px; margin-bottom: 20px; }
+
+        textarea { 
+            width: 100%; 
+            height: 140px; 
+            padding: 15px; 
+            border: 2px solid var(--border-muted); 
+            border-radius: 8px; 
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        textarea:focus { 
+            outline: none; 
+            border-color: var(--brand-secondary); 
+        }
+
+        .button-group { 
+            display: flex; 
+            gap: 15px; 
+            margin: 25px 0; 
+        }
+
+        button { 
+            padding: 14px 24px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 15px;
+            border: none;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #extractBtn { 
+            background: var(--brand-primary); 
+            color: white; 
+            flex: 2;
+        }
+
+        #extractBtn:hover { background: #001a2d; transform: translateY(-1px); }
+
+        #copyBtn { 
+            background: var(--brand-secondary); 
+            color: white; 
+            flex: 1;
+            display: none; 
+        }
+
+        #copyBtn:hover { background: #008cc0; transform: translateY(-1px); }
+
+        button:disabled { 
+            background: #cbd5e0 !important; 
+            cursor: not-allowed; 
+            transform: none !important;
+        }
+
+        .status-msg { 
+            font-size: 13px; 
+            color: var(--brand-secondary); 
+            margin-bottom: 15px; 
+            font-weight: 600;
+        }
+
+        .table-wrapper { 
+            overflow-x: auto; 
+            margin-top: 30px;
+            border-top: 1px solid var(--border-muted);
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 13px; 
+            background: white;
+        }
+
+        th { 
+            background: #F1F3F5; 
+            color: var(--brand-primary); 
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        td { 
+            padding: 12px 15px; 
+            border-bottom: 1px solid var(--border-muted); 
+            color: #444;
+        }
+
+        tr:hover td { background-color: #fcfcfc; }
+
+        a { color: var(--brand-secondary); text-decoration: none; font-weight: 600; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="main-card">
         <h2>YouTube Channel Extractor</h2>
-        <p>Enter YouTube URLs (one per line):</p>
-        <textarea id="urlInput" placeholder="https://www.youtube.com/watch?v=..."></textarea>
-        <button id="extractBtn">Extract Channel Info</button>
-        <div id="status" class="status"></div>
-        <table id="resultsTable" style="display:none;">
-            <thead>
-                <tr>
-                    <th>Video URL</th>
-                    <th>Channel Name</th>
-                    <th>Channel URL</th>
-                </tr>
-            </thead>
-            <tbody id="resultsBody"></tbody>
-        </table>
+        <p>Expertly retrieve channel details from YouTube video lists.</p>
+        
+        <textarea id="urlInput" placeholder="Paste your YouTube URLs here (one per line)..."></textarea>
+        
+        <div class="button-group">
+            <button id="extractBtn">Process URLs</button>
+            <button id="copyBtn">Copy Channels</button>
+        </div>
+        
+        <div id="status" class="status-msg"></div>
+        
+        <div class="table-wrapper">
+            <table id="resultsTable" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>Source Video</th>
+                        <th>Channel Authority</th>
+                        <th>Resource URL</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
     </div>
     <script src="app.js"></script>
 </body>
