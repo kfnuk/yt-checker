@@ -1,39 +1,32 @@
-// Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
 }
 
 const extractBtn = document.getElementById('extractBtn');
+const copyBtn = document.getElementById('copyBtn');
 const urlInput = document.getElementById('urlInput');
 const resultsTable = document.getElementById('resultsTable');
 const resultsBody = document.getElementById('resultsBody');
 const statusDiv = document.getElementById('status');
 
-/**
- * Normalises a YouTube URL and returns the 11-character video ID.
- */
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 function extractVideoId(url) {
     if (!url) return null;
     const s = String(url).trim();
     
-    // 1. Try standard patterns
     let match = s.match(/[?&]v=([A-Za-z0-9_-]{11})/) || 
                 s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/) ||
                 s.match(/\/shorts\/([A-Za-z0-9_-]{11})/) ||
                 s.match(/\/embed\/([A-Za-z0-9_-]{11})/) ||
-                // Added support for the /video/ format
                 s.match(/\/video\/([A-Za-z0-9_-]{11})/);
 
     if (match) return match[1];
 
-    // 2. Fallback: Heuristic for any URL ending in an 11-char ID (e.g., example.com/XYZ123abcde)
     const fallbackMatch = s.match(/\/([A-Za-z0-9_-]{11})(?:[?#].*)?$/);
     return fallbackMatch ? fallbackMatch[1] : null;
 }
 
-/**
- * Ported fetch using YouTube oEmbed via a CORS Proxy.
- */
 async function fetchChannelInfo(videoId) {
     if (!videoId) return { name: '#N/A (Invalid ID)', url: '#N/A' };
 
@@ -47,8 +40,6 @@ async function fetchChannelInfo(videoId) {
 
     const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const oembedUrl = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(ytUrl)}`;
-    
-    // Using corsproxy.io to bypass browser CORS restrictions
     const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(oembedUrl)}`;
 
     try {
@@ -61,7 +52,6 @@ async function fetchChannelInfo(videoId) {
             url: data.author_url || '#N/A' 
         };
         
-        // Cache for 6 hours
         localStorage.setItem(cacheKey, JSON.stringify({
             data: result,
             expiry: Date.now() + (6 * 60 * 60 * 1000)
@@ -79,11 +69,16 @@ extractBtn.addEventListener('click', async () => {
     if (lines.length === 0) return;
 
     extractBtn.disabled = true;
+    copyBtn.style.display = 'none';
     resultsBody.innerHTML = '';
     resultsTable.style.display = 'table';
-    statusDiv.textContent = 'Processing...';
+    
+    let processedCount = 0;
 
     for (const url of lines) {
+        processedCount++;
+        statusDiv.textContent = `Processing ${processedCount} of ${lines.length}...`;
+        
         const vid = extractVideoId(url);
         const info = await fetchChannelInfo(vid);
         
@@ -94,18 +89,14 @@ extractBtn.addEventListener('click', async () => {
             <td>${info.url !== '#N/A' ? `<a href="${info.url}" target="_blank">${info.url}</a>` : '#N/A'}</td>
         `;
         resultsBody.appendChild(row);
+
+        if (processedCount < lines.length) {
+            await sleep(500); 
+        }
     }
 
-    statusDiv.textContent = 'Done.';
+    statusDiv.textContent = 'Batch Processing Complete.';
     extractBtn.disabled = false;
-});
-const copyBtn = document.getElementById('copyBtn');
-
-// Logic to show/hide the copy button and handle the clipboard
-extractBtn.addEventListener('click', async () => {
-    // ... your existing extraction logic ...
-    
-    // Show the copy button once the loop finishes
     if (resultsBody.children.length > 0) {
         copyBtn.style.display = 'block';
     }
@@ -117,7 +108,6 @@ copyBtn.addEventListener('click', () => {
 
     rows.forEach(row => {
         const urlCell = row.cells[2].textContent;
-        // Only collect if it is a valid URL (not #N/A)
         if (urlCell && urlCell.startsWith('http')) {
             validUrls.push(urlCell);
         }
@@ -128,11 +118,12 @@ copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(textToCopy).then(() => {
             const originalText = copyBtn.textContent;
             copyBtn.textContent = 'Copied!';
-            copyBtn.style.background = '#009432';
+            const originalBg = copyBtn.style.background;
+            copyBtn.style.background = '#008cc0';
             
             setTimeout(() => {
                 copyBtn.textContent = originalText;
-                copyBtn.style.background = '';
+                copyBtn.style.background = originalBg;
             }, 2000);
         });
     } else {
