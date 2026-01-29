@@ -40,13 +40,18 @@ async function fetchChannelInfo(videoId) {
 
     const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const oembedUrl = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(ytUrl)}`;
-    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(oembedUrl)}`;
+    
+    // Switched to AllOrigins as corsproxy.io is currently returning 403 Forbidden
+    const proxiedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(oembedUrl)}`;
 
     try {
         const res = await fetch(proxiedUrl);
         if (!res.ok) throw new Error('Fetch failed');
         
-        const data = await res.json();
+        const responseData = await res.json();
+        // AllOrigins returns the target data as a string in the "contents" property
+        const data = JSON.parse(responseData.contents);
+        
         const result = { 
             name: data.author_name || '#N/A', 
             url: data.author_url || '#N/A' 
@@ -60,7 +65,7 @@ async function fetchChannelInfo(videoId) {
         return result;
     } catch (e) {
         console.error('Error fetching data:', e);
-        return { name: '#N/A (CORS/Network Error)', url: '#N/A' };
+        return { name: '#N/A (Proxy/Network Error)', url: '#N/A' };
     }
 }
 
@@ -130,3 +135,4 @@ copyBtn.addEventListener('click', () => {
         alert('No valid channel URLs found to copy.');
     }
 });
+
