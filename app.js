@@ -30,9 +30,9 @@ function extractVideoId(url) {
 async function fetchChannelInfo(videoId) {
     if (!videoId) return { name: '#N/A (Invalid ID)', url: '#N/A' };
 
+    // 1. Check Local Cache (6-hour expiry)
     const cacheKey = `yt_oembed_${videoId}`;
     const cached = localStorage.getItem(cacheKey);
-    
     if (cached) {
         const parsed = JSON.parse(cached);
         if (Date.now() < parsed.expiry) return parsed.data;
@@ -40,23 +40,19 @@ async function fetchChannelInfo(videoId) {
 
     const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const oembedUrl = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(ytUrl)}`;
-    
-    // Switched to AllOrigins as corsproxy.io is currently returning 403 Forbidden
-    const proxiedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(oembedUrl)}`;
 
     try {
-        const res = await fetch(proxiedUrl);
+        // 2. Use puter.net.fetch for a CORS-free request (No proxy needed)
+        const res = await puter.net.fetch(oembedUrl);
         if (!res.ok) throw new Error('Fetch failed');
         
-        const responseData = await res.json();
-        // AllOrigins returns the target data as a string in the "contents" property
-        const data = JSON.parse(responseData.contents);
-        
+        const data = await res.json();
         const result = { 
             name: data.author_name || '#N/A', 
             url: data.author_url || '#N/A' 
         };
         
+        // 3. Store result in Cache
         localStorage.setItem(cacheKey, JSON.stringify({
             data: result,
             expiry: Date.now() + (6 * 60 * 60 * 1000)
@@ -64,8 +60,8 @@ async function fetchChannelInfo(videoId) {
         
         return result;
     } catch (e) {
-        console.error('Error fetching data:', e);
-        return { name: '#N/A (Proxy/Network Error)', url: '#N/A' };
+        console.error('Extraction Error:', e);
+        return { name: '#N/A (CORS/Network Error)', url: '#N/A' };
     }
 }
 
@@ -135,4 +131,5 @@ copyBtn.addEventListener('click', () => {
         alert('No valid channel URLs found to copy.');
     }
 });
+
 
