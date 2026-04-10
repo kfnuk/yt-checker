@@ -96,7 +96,8 @@ async function fetchChannelInfo(videoId) {
     const oembedUrl = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(ytUrl)}`;
 
     try {
-        const res = await puter.net.fetch(oembedUrl);
+        const WORKER_URL = 'https://yt-oembed-proxy.kevin0416.workers.dev';
+const res = await fetch(`${WORKER_URL}?url=${encodeURIComponent(oembedUrl)}`);
         if (!res.ok) throw new Error(`oEmbed request failed: ${res.status}`);
 
         const data = await res.json();
