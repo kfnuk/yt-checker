@@ -13,10 +13,11 @@ const resultsBody  = document.getElementById('resultsBody');
 const statusDiv    = document.getElementById('status');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const CACHE_PREFIX    = 'yt_oembed_';
-const CACHE_TTL_MS    = 6 * 60 * 60 * 1000; // 6 hours
-const BATCH_SIZE      = 5;                   // concurrent requests per batch
-const BATCH_DELAY_MS  = 300;                 // pause between batches (ms)
+const CACHE_PREFIX   = 'yt_oembed_';
+const CACHE_TTL_MS   = 6 * 60 * 60 * 1000; // 6 hours
+const BATCH_SIZE     = 5;                   // concurrent requests per batch
+const BATCH_DELAY_MS = 300;                 // pause between batches (ms)
+const WORKER_URL     = 'https://yt-oembed-proxy.kevin0416.workers.dev';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -53,10 +54,10 @@ function extractVideoId(url) {
     const s = String(url).trim();
 
     const match =
-        s.match(/[?&]v=([A-Za-z0-9_-]{11})/)       ||
-        s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/)  ||
-        s.match(/\/shorts\/([A-Za-z0-9_-]{11})/)   ||
-        s.match(/\/embed\/([A-Za-z0-9_-]{11})/)    ||
+        s.match(/[?&]v=([A-Za-z0-9_-]{11})/)      ||
+        s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/) ||
+        s.match(/\/shorts\/([A-Za-z0-9_-]{11})/)  ||
+        s.match(/\/embed\/([A-Za-z0-9_-]{11})/)   ||
         s.match(/\/video\/([A-Za-z0-9_-]{11})/);
 
     if (match) return match[1];
@@ -91,13 +92,12 @@ async function fetchChannelInfo(videoId) {
         }
     }
 
-    // 2. Fetch from YouTube oEmbed API via puter (CORS-free)
-    const ytUrl    = `https://www.youtube.com/watch?v=${videoId}`;
+    // 2. Fetch from YouTube oEmbed API via Cloudflare Worker (CORS-free)
+    const ytUrl     = `https://www.youtube.com/watch?v=${videoId}`;
     const oembedUrl = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(ytUrl)}`;
 
     try {
-        const WORKER_URL = 'https://yt-oembed-proxy.kevin0416.workers.dev';
-const res = await fetch(`${WORKER_URL}?url=${encodeURIComponent(oembedUrl)}`);
+        const res = await fetch(`${WORKER_URL}?url=${encodeURIComponent(oembedUrl)}`);
         if (!res.ok) throw new Error(`oEmbed request failed: ${res.status}`);
 
         const data = await res.json();
@@ -181,7 +181,7 @@ async function processInBatches(urls) {
             })
         );
 
-        // ✅ Use batchIndex directly — never rely on settled.indexOf()
+        // Use batchIndex directly — never rely on settled.indexOf()
         settled.forEach((result, batchIndex) => {
             const absoluteIndex = i + batchIndex;
             if (result.status === 'fulfilled') {
@@ -205,6 +205,7 @@ async function processInBatches(urls) {
 
     return results;
 }
+
 // ─── Extract Button ───────────────────────────────────────────────────────────
 extractBtn.addEventListener('click', async () => {
     const lines = urlInput.value.split('\n').filter(l => l.trim() !== '');
@@ -258,11 +259,11 @@ copyBtn.addEventListener('click', () => {
         const originalText = copyBtn.textContent;
         const originalBg   = copyBtn.style.background;
 
-        copyBtn.textContent    = 'Copied!';
+        copyBtn.textContent      = 'Copied!';
         copyBtn.style.background = '#008cc0';
 
         setTimeout(() => {
-            copyBtn.textContent    = originalText;
+            copyBtn.textContent      = originalText;
             copyBtn.style.background = originalBg;
         }, 2000);
     }).catch(err => {
