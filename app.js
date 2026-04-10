@@ -169,26 +169,30 @@ async function processInBatches(urls) {
         const batch = urls.slice(i, i + BATCH_SIZE);
 
         const settled = await Promise.allSettled(
-            batch.map(async (url, batchIndex) => {
-                const vid  = extractVideoId(url);
-                const info = await fetchChannelInfo(vid);
-                return { index: i + batchIndex, url, info };
+            batch.map((url, batchIndex) => {
+                const absoluteIndex = i + batchIndex;
+                const vid = extractVideoId(url);
+                return fetchChannelInfo(vid).then(info => ({
+                    index: absoluteIndex,
+                    url,
+                    info,
+                }));
             })
         );
 
-        for (const result of settled) {
+        // ✅ Use batchIndex directly — never rely on settled.indexOf()
+        settled.forEach((result, batchIndex) => {
+            const absoluteIndex = i + batchIndex;
             if (result.status === 'fulfilled') {
-                results[result.value.index] = result.value;
+                results[absoluteIndex] = result.value;
             } else {
-                // Fallback for unexpected promise rejections
-                const fallbackIndex = i + settled.indexOf(result);
-                results[fallbackIndex] = {
-                    index: fallbackIndex,
-                    url:   urls[fallbackIndex],
+                results[absoluteIndex] = {
+                    index: absoluteIndex,
+                    url:   urls[absoluteIndex],
                     info:  { name: '#N/A (Error)', url: '#N/A' },
                 };
             }
-        }
+        });
 
         const processed = Math.min(i + BATCH_SIZE, urls.length);
         statusDiv.textContent = `Processing ${processed} of ${urls.length}…`;
@@ -200,7 +204,6 @@ async function processInBatches(urls) {
 
     return results;
 }
-
 // ─── Extract Button ───────────────────────────────────────────────────────────
 extractBtn.addEventListener('click', async () => {
     const lines = urlInput.value.split('\n').filter(l => l.trim() !== '');
